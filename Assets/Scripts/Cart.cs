@@ -30,10 +30,12 @@ public class Cart : MonoBehaviour
     {
         GetMovementInput();
         Vector3 movement = (Vector3.forward * -_movementInput.y).normalized * _acceleration;
-        _rb.AddRelativeTorque(transform.up * _torque * _movementInput.x);
         _rb.AddRelativeForce(movement, ForceMode.Force);
+        float rotationAmount = _movementInput.x * _torque * Time.deltaTime;
+        transform.Rotate(Vector3.up, rotationAmount);
+
         _rb.maxAngularVelocity = 3f;
-        //_rb.velocity = new Vector3(_rb.velocity.x, _rb.velocity.y, Mathf.Clamp(_rb.velocity.z, -_maxSpeed, _maxSpeed));
+        _rb.velocity = new Vector3(_rb.velocity.x, _rb.velocity.y, Mathf.Clamp(_rb.velocity.z, -_maxSpeed, _maxSpeed));
     }
 
     private void OnEnable()
