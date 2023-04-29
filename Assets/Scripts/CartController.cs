@@ -16,6 +16,8 @@ public class CartController : MonoBehaviour
     private Transform _kartModel;
     [SerializeField]
     private LayerMask _roadLayerMask;
+    [SerializeField]
+    private GameObject _wheelPivot;
 
     private float _speed, _currentSpeed;
     private float _rotation, _currentRotation;
@@ -36,8 +38,9 @@ public class CartController : MonoBehaviour
 
 
         Physics.Raycast(_kartModel.position + Vector3.up, Vector3.down, out RaycastHit checkRoad, 2f, _roadLayerMask);
-        if(checkRoad.collider)print(checkRoad.collider);
+
         if (_movementInput.y != 0) _speed = -_movementInput.y * (checkRoad.collider ? _acceleration : _stuckAcceleration);
+        _wheelPivot.transform.Rotate(Time.deltaTime * (_sphere.velocity.x + _sphere.velocity.z) * 0.5f * 200, 0, 0);
 
         if (_movementInput.x != 0) Steer(_movementInput.x > 0 ? 1 : -1, Mathf.Abs(_movementInput.x));
 
