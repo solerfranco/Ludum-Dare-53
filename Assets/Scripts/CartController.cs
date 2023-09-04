@@ -46,6 +46,9 @@ public class CartController : MonoBehaviour
     private PlayerInputActions _playerInputActions;
     private bool _checkRoad, _won;
 
+    [SerializeField]
+    private Animator _anim;
+
 
     private void Awake()
     {
@@ -56,7 +59,14 @@ public class CartController : MonoBehaviour
     private void Start()
     {
         _playerInputActions.Player.Jump.performed += Tutorial;
+        _playerInputActions.Player.Jump.performed += Drift;
         _tutorialPanel.SetActive(true);
+    }
+
+    private void Drift(InputAction.CallbackContext context)
+    {
+        _anim.SetTrigger("Drifting");
+        _anim.SetFloat("Drift", -1);
     }
 
     private void Tutorial(InputAction.CallbackContext obj)
@@ -64,6 +74,7 @@ public class CartController : MonoBehaviour
         if (!_tutorialPanel.activeSelf) return;
         _tutorialPanel.SetActive(false);
         _playerInputActions.Enable();
+        _playerInputActions.Player.Jump.performed -= Tutorial;
     }
 
     private void DropCargo()
