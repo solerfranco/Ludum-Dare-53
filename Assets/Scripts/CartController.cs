@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
+using System.Linq;
+using UnityEngine.VFX;
 
 public class CartController : MonoBehaviour
 {
@@ -12,7 +14,10 @@ public class CartController : MonoBehaviour
     [SerializeField]
     private float _acceleration = 30f;
     [SerializeField]
-    private float _steering = 80f;
+    private float _initialSteering = 20f;
+    [SerializeField]
+    private float _driftSteering = 10f;
+    private float _steering;
     [SerializeField]
     private float _gravity = 10f;
     [SerializeField]
@@ -26,18 +31,29 @@ public class CartController : MonoBehaviour
     private ParticleSystem _leftWheelPS, _rightWheelPS;
 
     [SerializeField]
+    private Transform _leftWheelSparksContainer, _rightWheelSparksContainer;
+
+    [SerializeField]
+    private ParticleSystem[] _leftWheelSparksPS, _rightWheelSparksPS;
+
+    [SerializeField]
     private List<Rigidbody> _cargo;
 
     [SerializeField]
     private Speedometer _speedometer;
 
     [SerializeField]
-    private GameObject _winPanel, _tutorialPanel;
+    private GameObject _winPanel;
 
     [SerializeField]
     private TextMeshProUGUI _timeText;
 
+    [SerializeField]
+    private CameraShake _cameraShake;
+
     private float _timeElapsed;
+
+    private bool _drifting;
 
     private float _speed, _currentSpeed;
     private float _rotation, _currentRotation;
@@ -54,27 +70,40 @@ public class CartController : MonoBehaviour
     {
         _playerInputActions = new PlayerInputActions();
         _stuckAcceleration = _acceleration * 0.4f;
+        _steering = _initialSteering;
     }
 
     private void Start()
     {
-        _playerInputActions.Player.Jump.performed += Tutorial;
+        _playerInputActions.Player.Enable();
         _playerInputActions.Player.Jump.performed += Drift;
-        _tutorialPanel.SetActive(true);
+        _leftWheelSparksPS = _leftWheelSparksContainer.GetComponentsInChildren<ParticleSystem>();
+        _rightWheelSparksPS = _rightWheelSparksContainer.GetComponentsInChildren<ParticleSystem>();
     }
 
     private void Drift(InputAction.CallbackContext context)
     {
-        _anim.SetTrigger("Drifting");
-        _anim.SetFloat("Drift", -1);
+        if (_drifting || (_sphere.velocity.sqrMagnitude > 10 && _movementInput.x != 0)) ToggleDrifting();
     }
 
-    private void Tutorial(InputAction.CallbackContext obj)
+    private void ToggleDrifting()
     {
-        if (!_tutorialPanel.activeSelf) return;
-        _tutorialPanel.SetActive(false);
-        _playerInputActions.Enable();
-        _playerInputActions.Player.Jump.performed -= Tutorial;
+        _drifting = !_drifting;
+        _anim.SetTrigger("Drifting");
+        if(_drifting)_anim.SetFloat("Drift", _movementInput.x);
+        _steering = _drifting ? _driftSteering : _initialSteering;
+
+        if(_drifting) ToggleSparks(true, _movementInput.x > 0 ? _rightWheelSparksPS : _leftWheelSparksPS);
+        else ToggleSparks(false, _leftWheelSparksPS.Concat(_rightWheelSparksPS).ToArray());
+    }
+
+    private void ToggleSparks(bool enabled, ParticleSystem[] sparks)
+    {
+        foreach (var spark in sparks)
+        {
+            if(enabled) spark.Play();
+            else spark.Stop();
+        }
     }
 
     private void DropCargo()
@@ -88,7 +117,6 @@ public class CartController : MonoBehaviour
 
     void Update()
     {
-        if (_tutorialPanel.activeSelf) return;
         if (!_won)
         {
             _timeElapsed += Time.deltaTime;
@@ -98,13 +126,15 @@ public class CartController : MonoBehaviour
             _timeText.text = "Delivery time: " + _timeElapsed.ToString("00.00") + "s <br> Packages delivered: " + _cargo.Count.ToString();
         }
 
+        if (_sphere.velocity.sqrMagnitude < 30 && _drifting) ToggleDrifting();
+
         transform.position = _sphere.transform.position - Vector3.up * 0.5f;
         _movementInput = _playerInputActions.Player.Movement.ReadValue<Vector2>();
 
+        _anim.SetFloat("Speed", _sphere.velocity.sqrMagnitude);
         _speedometer.Speed = _sphere.velocity.sqrMagnitude;
 
         _speed = -_movementInput.y * (_checkRoad ? _acceleration : _stuckAcceleration);
-        print(_sphere.velocity.sqrMagnitude);
 
         var leftEmission = _leftWheelPS.emission;
         leftEmission.enabled = _sphere.velocity.sqrMagnitude > 110;
@@ -187,6 +217,7 @@ public class CartController : MonoBehaviour
         if (other.CompareTag("Obstacle"))
         {
             DropCargo();
+            _cameraShake.ShakeCamera(2, 0.3f);
             return;
         }
         if (other.CompareTag("Goal"))
