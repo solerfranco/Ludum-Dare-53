@@ -17,11 +17,13 @@ public class Obstacle : MonoBehaviour
         {
             _cloudPoof.Play();
             ShootRocks(other);
+            LeanTween.scale(gameObject, Vector3.zero, 1f).setEaseInCubic();
         }
     }
 
     private void ShootRocks(Collider other)
     {
+        if (_rocks.Length <= 0) return;
         for (int i = 0; i < 5; i++)
         {
             GameObject rock = Instantiate(_rocks[Random.Range(0, _rocks.Length)], transform.position, Quaternion.identity);

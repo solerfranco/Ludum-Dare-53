@@ -2,10 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using TMPro;
 using System.Linq;
-using UnityEngine.VFX;
+using UnityEngine.SceneManagement;
 
 public class CartController : MonoBehaviour
 {
@@ -51,9 +52,17 @@ public class CartController : MonoBehaviour
     [SerializeField]
     private CameraShake _cameraShake;
 
+    private bool _canDrift = true;
+
+    [SerializeField]
+    private float _driftCooldown;
+
     private float _timeElapsed;
 
     private bool _drifting;
+
+    [SerializeField]
+    private Image _driftIndicator, _driftBackground;
 
     private float _speed, _currentSpeed;
     private float _rotation, _currentRotation;
@@ -77,24 +86,49 @@ public class CartController : MonoBehaviour
     {
         _playerInputActions.Player.Enable();
         _playerInputActions.Player.Jump.performed += Drift;
+        _playerInputActions.Player.Restart.performed += Reload;
         _leftWheelSparksPS = _leftWheelSparksContainer.GetComponentsInChildren<ParticleSystem>();
         _rightWheelSparksPS = _rightWheelSparksContainer.GetComponentsInChildren<ParticleSystem>();
     }
 
+    private void Reload(InputAction.CallbackContext context)
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
     private void Drift(InputAction.CallbackContext context)
     {
-        if (_drifting || (_sphere.velocity.sqrMagnitude > 10 && _movementInput.x != 0)) ToggleDrifting();
+        if (_canDrift && (_drifting || _sphere.velocity.sqrMagnitude > 10)) ToggleDrifting();
+    }
+
+    private void UpdateFillAmount(float amount)
+    {
+        _driftIndicator.fillAmount = amount;
     }
 
     private void ToggleDrifting()
     {
         _drifting = !_drifting;
-        _anim.SetTrigger("Drifting");
-        if(_drifting)_anim.SetFloat("Drift", _movementInput.x);
+        _sphere.drag = _drifting ? 2.5f : 2;
+        _anim.SetBool("Drifting", _drifting);
         _steering = _drifting ? _driftSteering : _initialSteering;
 
-        if(_drifting) ToggleSparks(true, _movementInput.x > 0 ? _rightWheelSparksPS : _leftWheelSparksPS);
-        else ToggleSparks(false, _leftWheelSparksPS.Concat(_rightWheelSparksPS).ToArray());
+        if (_drifting)
+        {
+            _canDrift = false;
+            LeanTween.value(_driftIndicator.gameObject, UpdateFillAmount, 0, 1, 0.5f).setOnComplete(() =>
+            {
+                _canDrift = true;
+            });
+            _driftBackground.color = Color.red;
+            _anim.SetFloat("Drift", _movementInput.x != 0 ? _movementInput.x : -1);
+            ToggleSparks(true, _movementInput.x > 0 ? _rightWheelSparksPS : _leftWheelSparksPS);
+        }
+        else
+        {
+            StartCoroutine(StartDriftCooldown(_driftCooldown));
+            ToggleSparks(false, _leftWheelSparksPS.Concat(_rightWheelSparksPS).ToArray());
+        }
     }
 
     private void ToggleSparks(bool enabled, ParticleSystem[] sparks)
@@ -117,6 +151,7 @@ public class CartController : MonoBehaviour
 
     void Update()
     {
+        if(_sphere.velocity.sqrMagnitude < 1 && _movementInput.y == 0) _sphere.velocity = Vector3.zero;
         if (!_won)
         {
             _timeElapsed += Time.deltaTime;
@@ -141,7 +176,7 @@ public class CartController : MonoBehaviour
         var rightEmission = _rightWheelPS.emission;
         rightEmission.enabled = _sphere.velocity.sqrMagnitude > 110;
 
-        _wheelPivot.transform.Rotate(Time.deltaTime * (_sphere.velocity.x + _sphere.velocity.z) * 0.5f * 200, 0, 0);
+        _wheelPivot.transform.Rotate(Time.deltaTime * -_sphere.velocity.sqrMagnitude * 30, 0, 0, Space.Self);
 
         if (_movementInput.x != 0) Steer(_movementInput.x > 0 ? 1 : -1, Mathf.Abs(_movementInput.x));
 
@@ -194,6 +229,7 @@ public class CartController : MonoBehaviour
     {
         _won = true;
         _playerInputActions.Disable();
+        _playerInputActions.Player.Restart.Enable();
         _currentSpeed = 0;
         
         WaitForSeconds delayMove = new WaitForSeconds(0.25f);
@@ -211,13 +247,32 @@ public class CartController : MonoBehaviour
         }
         _winPanel.SetActive(true);
     }
+    
+    private IEnumerator StartDriftCooldown(float cooldown)
+    {
+        _canDrift = false;
+        float elapsedTime = cooldown;
+        while (elapsedTime >= 0)
+        {
+            elapsedTime -= Time.deltaTime;
+            _driftIndicator.fillAmount = elapsedTime / cooldown;
+            yield return null;
+        }
+        _canDrift = true;
+        LeanTween.scale(_driftBackground.gameObject, Vector3.one * 1.2f, 0.1f).setLoopPingPong(1);
+        _driftBackground.color = Color.white;
+    }
 
     public void TriggerEntered(Collider other)
     {
         if (other.CompareTag("Obstacle"))
         {
-            DropCargo();
-            _cameraShake.ShakeCamera(2, 0.3f);
+            if (!_drifting)
+            {
+                DropCargo();
+                _sphere.velocity = Vector3.zero;
+            }
+            _cameraShake.ShakeCamera(2, _drifting ? 0.1f : 0.3f);
             return;
         }
         if (other.CompareTag("Goal"))

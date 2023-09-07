@@ -143,6 +143,9 @@ MonoBehaviour:
   _speedometer: {fileID: 0}
   _winPanel: {fileID: 0}
   _timeText: {fileID: 0}
+  _cameraShake: {fileID: 0}
+  _driftCooldown: 1.5
+  _driftIndicator: {fileID: 0}
   _anim: {fileID: 4090556387833739439}
 --- !u!95 &4090556387833739439
 Animator:
@@ -193,7 +196,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0.25, z: 0.39999998}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 7193133863435048013}
   m_Father: {fileID: 45910487465055838}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1791459754835338980
@@ -400,7 +404,6 @@ Transform:
   m_Children:
   - {fileID: 2613326135829714502}
   - {fileID: 1791459754318485363}
-  - {fileID: 7193133863435048013}
   - {fileID: 3792705945060708422}
   - {fileID: 828625392479064958}
   - {fileID: 1519191016209974513}
@@ -582,11 +585,11 @@ Transform:
   m_GameObject: {fileID: 6436472787826186512}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.0031000078, z: 0.20499998}
+  m_LocalPosition: {x: 0, y: -0.2531, z: -0.195}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 45910487465055838}
+  m_Father: {fileID: 1791459754318485363}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2629035723639991621
 MeshFilter:
