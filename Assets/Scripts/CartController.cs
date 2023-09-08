@@ -7,6 +7,7 @@ using UnityEngine.InputSystem;
 using TMPro;
 using System.Linq;
 using UnityEngine.SceneManagement;
+using Unity.VisualScripting;
 
 public class CartController : MonoBehaviour
 {
@@ -27,6 +28,9 @@ public class CartController : MonoBehaviour
     private LayerMask _roadLayerMask;
     [SerializeField]
     private GameObject _wheelPivot;
+
+    [SerializeField]
+    private AudioSource _driftAS, _cartAS;
 
     [SerializeField]
     private ParticleSystem _leftWheelPS, _rightWheelPS;
@@ -87,8 +91,14 @@ public class CartController : MonoBehaviour
         _playerInputActions.Player.Enable();
         _playerInputActions.Player.Jump.performed += Drift;
         _playerInputActions.Player.Restart.performed += Reload;
+        _playerInputActions.Player.SlowTime.performed += SlowTime;
         _leftWheelSparksPS = _leftWheelSparksContainer.GetComponentsInChildren<ParticleSystem>();
         _rightWheelSparksPS = _rightWheelSparksContainer.GetComponentsInChildren<ParticleSystem>();
+    }
+
+    private void SlowTime(InputAction.CallbackContext context)
+    {
+        StartCoroutine(SlowTimeScale(0.5f));
     }
 
     private void Reload(InputAction.CallbackContext context)
@@ -115,6 +125,8 @@ public class CartController : MonoBehaviour
 
         if (_drifting)
         {
+            _driftAS.Play();
+            _cartAS.Stop();
             _canDrift = false;
             LeanTween.value(_driftIndicator.gameObject, UpdateFillAmount, 0, 1, 0.5f).setOnComplete(() =>
             {
@@ -126,6 +138,8 @@ public class CartController : MonoBehaviour
         }
         else
         {
+            _driftAS.Stop();
+            _cartAS.Play();
             StartCoroutine(StartDriftCooldown(_driftCooldown));
             ToggleSparks(false, _leftWheelSparksPS.Concat(_rightWheelSparksPS).ToArray());
         }
@@ -170,6 +184,7 @@ public class CartController : MonoBehaviour
         _speedometer.Speed = _sphere.velocity.sqrMagnitude;
 
         _speed = -_movementInput.y * (_checkRoad ? _acceleration : _stuckAcceleration);
+        _cartAS.pitch = Mathf.InverseLerp(0f, 300, _sphere.velocity.sqrMagnitude) + 1;
 
         var leftEmission = _leftWheelPS.emission;
         leftEmission.enabled = _sphere.velocity.sqrMagnitude > 110;
@@ -246,6 +261,18 @@ public class CartController : MonoBehaviour
             yield return delayMove;
         }
         _winPanel.SetActive(true);
+    }
+
+    private IEnumerator SlowTimeScale(float time)
+    {
+        float elapsedTime = time;
+        while (elapsedTime >= 0)
+        {
+            elapsedTime -= 0.01f;
+            Time.timeScale = Mathf.Clamp(elapsedTime / time, 0.3f, 1);
+            yield return new WaitForSecondsRealtime(0.01f);
+        }
+        Time.timeScale = 0f;
     }
     
     private IEnumerator StartDriftCooldown(float cooldown)

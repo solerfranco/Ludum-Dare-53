@@ -12,7 +12,6 @@ public class Target : MonoBehaviour
 
     private void Update()
     {
-        print(Vector3.Distance(transform.position, player.position));
         if(Vector3.Distance(transform.position, player.position) < minDistance)
         {
             LeanTween.move(gameObject, destination.position, 0.5f);

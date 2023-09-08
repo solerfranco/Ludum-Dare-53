@@ -80,6 +80,15 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""SlowTime"",
+                    ""type"": ""Button"",
+                    ""id"": ""a5e4ad61-07a2-4325-a4c6-20e6b277661b"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -368,6 +377,17 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
                     ""action"": ""Restart"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""53f67745-8374-494a-817e-3be840a94cff"",
+                    ""path"": ""<Keyboard>/t"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard"",
+                    ""action"": ""SlowTime"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -574,6 +594,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         m_Player_RotationY = m_Player.FindAction("Rotation Y", throwIfNotFound: true);
         m_Player_Interact = m_Player.FindAction("Interact", throwIfNotFound: true);
         m_Player_Restart = m_Player.FindAction("Restart", throwIfNotFound: true);
+        m_Player_SlowTime = m_Player.FindAction("SlowTime", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Continue = m_UI.FindAction("Continue", throwIfNotFound: true);
@@ -645,6 +666,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_RotationY;
     private readonly InputAction m_Player_Interact;
     private readonly InputAction m_Player_Restart;
+    private readonly InputAction m_Player_SlowTime;
     public struct PlayerActions
     {
         private @PlayerInputActions m_Wrapper;
@@ -655,6 +677,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         public InputAction @RotationY => m_Wrapper.m_Player_RotationY;
         public InputAction @Interact => m_Wrapper.m_Player_Interact;
         public InputAction @Restart => m_Wrapper.m_Player_Restart;
+        public InputAction @SlowTime => m_Wrapper.m_Player_SlowTime;
         public InputActionMap Get() { return m_Wrapper.m_Player; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -682,6 +705,9 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
             @Restart.started += instance.OnRestart;
             @Restart.performed += instance.OnRestart;
             @Restart.canceled += instance.OnRestart;
+            @SlowTime.started += instance.OnSlowTime;
+            @SlowTime.performed += instance.OnSlowTime;
+            @SlowTime.canceled += instance.OnSlowTime;
         }
 
         private void UnregisterCallbacks(IPlayerActions instance)
@@ -704,6 +730,9 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
             @Restart.started -= instance.OnRestart;
             @Restart.performed -= instance.OnRestart;
             @Restart.canceled -= instance.OnRestart;
+            @SlowTime.started -= instance.OnSlowTime;
+            @SlowTime.performed -= instance.OnSlowTime;
+            @SlowTime.canceled -= instance.OnSlowTime;
         }
 
         public void RemoveCallbacks(IPlayerActions instance)
@@ -801,6 +830,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         void OnRotationY(InputAction.CallbackContext context);
         void OnInteract(InputAction.CallbackContext context);
         void OnRestart(InputAction.CallbackContext context);
+        void OnSlowTime(InputAction.CallbackContext context);
     }
     public interface IUIActions
     {

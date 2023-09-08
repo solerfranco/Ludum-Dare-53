@@ -11,11 +11,16 @@ public class Obstacle : MonoBehaviour
     [SerializeField]
     private GameObject[] _rocks;
 
+    [SerializeField]
+    private AudioSource _crashAS;
+
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
         {
             _cloudPoof.Play();
+            _crashAS.pitch = Random.Range(0.7f, 2f);
+            _crashAS.Play();
             ShootRocks(other);
             LeanTween.scale(gameObject, Vector3.zero, 1f).setEaseInCubic();
         }
